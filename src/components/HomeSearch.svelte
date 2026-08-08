@@ -218,7 +218,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </span>
-          <span class="text-xs text-ink-subtle font-mono">Degrees of Separation</span>
+          <span class="text-xs text-ink-subtle font-mono">shortestPath</span>
         </div>
         <h3 class="mt-3 text-base font-semibold text-ink group-hover:text-project">
           Degrees of Separation
