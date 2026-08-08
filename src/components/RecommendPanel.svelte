@@ -13,10 +13,16 @@
   interface Props {
     talents: GraphNode[];
     skills: GraphNode[];
-    onselect: (id: string) => void;
+    /** Ids of talents holding at least one project credit. See `Explorer`. */
+    credited: Set<string>;
+    onselect: (node: GraphNode) => void;
   }
 
-  let { talents, skills, onselect }: Props = $props();
+  let { talents, skills, credited, onselect }: Props = $props();
+
+  // Without the overview both selects are empty, and a form of empty dropdowns
+  // above "pick a person and a skill" invites a click that cannot do anything.
+  const unavailable = $derived(talents.length === 0 || skills.length === 0);
 
   let talentId = $state('');
   let skill = $state('');
@@ -49,93 +55,113 @@
   }
 </script>
 
-<form onsubmit={suggest} class="space-y-3">
-  <label class="block">
-    <span class="text-xs font-medium tracking-wider text-ink-subtle uppercase">
-      Crewing for
-    </span>
-    <select
-      bind:value={talentId}
-      class="mt-1 w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm"
+{#if unavailable}
+  <p class="text-sm text-ink-muted">
+    Suggestions need the network loaded. Once the graph is available this panel lists
+    everyone in it and every skill they hold.
+  </p>
+{:else}
+  <form onsubmit={suggest} class="space-y-3">
+    <label class="block">
+      <span class="text-xs font-medium tracking-wider text-ink-subtle uppercase">
+        Crewing for
+      </span>
+      <select
+        bind:value={talentId}
+        class="mt-1 w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm"
+      >
+        <option value="">Choose someone…</option>
+        {#each talents as talent (talent.id)}
+          <option value={talent.id}>{talent.name}</option>
+        {/each}
+      </select>
+    </label>
+
+    <label class="block">
+      <span class="text-xs font-medium tracking-wider text-ink-subtle uppercase">
+        Who can do
+      </span>
+      <select
+        bind:value={skill}
+        class="mt-1 w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm"
+      >
+        <option value="">Choose a skill…</option>
+        {#each skills as entry (entry.id)}
+          <option value={entry.name}>{entry.name}</option>
+        {/each}
+      </select>
+    </label>
+
+    <button
+      type="submit"
+      disabled={!ready || loading}
+      class="w-full rounded-md border border-border-strong px-3 py-2 text-sm font-medium hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40"
     >
-      <option value="">Choose someone…</option>
-      {#each talents as talent (talent.id)}
-        <option value={talent.id}>{talent.name}</option>
-      {/each}
-    </select>
-  </label>
+      {loading ? 'Looking…' : 'Find people'}
+    </button>
+  </form>
 
-  <label class="block">
-    <span class="text-xs font-medium tracking-wider text-ink-subtle uppercase">
-      Who can do
-    </span>
-    <select
-      bind:value={skill}
-      class="mt-1 w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm"
-    >
-      <option value="">Choose a skill…</option>
-      {#each skills as entry (entry.id)}
-        <option value={entry.name}>{entry.name}</option>
-      {/each}
-    </select>
-  </label>
+  <div class="mt-4">
+    {#if failure}
+      <p class="text-sm text-ink-muted">{failure}</p>
+    {:else if answer && answer.recommendations.length === 0}
+      <!-- Two different dead ends, and the advice for one is wrong for the other.
+           Query A walks out from the requester's own project credits, so someone
+           with none returns nothing for every skill in the list — telling them to
+           try another is telling them to try twelve. -->
+      {#if !credited.has(answer.talentId)}
+        <p class="text-sm text-ink-muted">
+          {nameOf(answer.talentId)} has no project credits yet, and this suggestion
+          works by walking out from them — shared agency first, then who else that
+          agency has hired. Pick someone with credits to see it work.
+        </p>
+      {:else}
+        <p class="text-sm text-ink-muted">
+          Nobody with {answer.skill} shares an agency with {nameOf(answer.talentId)} yet.
+          Try a different skill.
+        </p>
+      {/if}
+    {:else if answer}
+      <p class="text-sm text-ink-muted">
+        {answer.recommendations.length}
+        {answer.recommendations.length === 1 ? 'person' : 'people'} with {answer.skill},
+        reachable through shared agencies.
+      </p>
 
-  <button
-    type="submit"
-    disabled={!ready || loading}
-    class="w-full rounded-md border border-border-strong px-3 py-2 text-sm font-medium hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40"
-  >
-    {loading ? 'Looking…' : 'Find people'}
-  </button>
-</form>
+      <ul class="mt-3 space-y-3">
+        {#each answer.recommendations as person (person.talentId)}
+          <li class="rounded-lg border border-border bg-surface-raised p-3">
+            <button
+              type="button"
+              onclick={() =>
+                onselect({ id: person.talentId, label: 'Talent', name: person.talentName })}
+              class="text-left text-sm font-medium hover:underline"
+            >
+              {person.talentName}
+            </button>
+            <p class="text-xs text-ink-subtle">{person.talentRole}</p>
 
-<div class="mt-4">
-  {#if failure}
-    <p class="text-sm text-ink-muted">{failure}</p>
-  {:else if answer && answer.recommendations.length === 0}
-    <p class="text-sm text-ink-muted">
-      Nobody with {answer.skill} shares an agency with {nameOf(answer.talentId)} yet.
-      Try a different skill, or someone with more credits.
-    </p>
-  {:else if answer}
-    <p class="text-sm text-ink-muted">
-      {answer.recommendations.length}
-      {answer.recommendations.length === 1 ? 'person' : 'people'} with {answer.skill},
-      reachable through shared agencies.
-    </p>
-
-    <ul class="mt-3 space-y-3">
-      {#each answer.recommendations as person (person.talentId)}
-        <li class="rounded-lg border border-border bg-surface-raised p-3">
-          <button
-            type="button"
-            onclick={() => onselect(person.talentId)}
-            class="text-left text-sm font-medium hover:underline"
-          >
-            {person.talentName}
-          </button>
-          <p class="text-xs text-ink-subtle">{person.talentRole}</p>
-
-          <ul class="mt-2 space-y-1.5 border-t border-border pt-2">
-            <!-- Unkeyed on purpose: these are evidence rows, not entities. Two
-                 of them can differ only in `yourProject` — one person reachable
-                 through the same agency by two projects of yours — so no field
-                 or combination of fields is a stable identity. -->
-            {#each person.connections as connection}
-              <li class="text-xs text-ink-muted">
-                Both worked for <span class="text-ink">{connection.viaAgency}</span> —
-                you on {connection.yourProject}, them on {connection.theirProject}
-                as {connection.roleOnProject}.
-              </li>
-            {/each}
-          </ul>
-        </li>
-      {/each}
-    </ul>
-  {:else}
-    <p class="text-sm text-ink-muted">
-      Pick a person and a skill to find collaborators they have not met yet, but who
-      already work with the same agencies.
-    </p>
-  {/if}
-</div>
+            <ul class="mt-2 space-y-1.5 border-t border-border pt-2">
+              <!-- Unkeyed on purpose: these are evidence rows, not entities. Two
+                   of them can differ only in `yourProject` — one person reachable
+                   through the same agency by two projects of yours — so no field
+                   or combination of fields is a stable identity. -->
+              {#each person.connections as connection}
+                <li class="text-xs text-ink-muted">
+                  Both worked for <span class="text-ink">{connection.viaAgency}</span> —
+                  you on {connection.yourProject}, them on {connection.theirProject}
+                  as {connection.roleOnProject}.
+                </li>
+              {/each}
+            </ul>
+          </li>
+        {/each}
+      </ul>
+    {:else}
+      <p class="text-sm text-ink-muted">
+        Pick a person and a skill to find collaborators they have not met yet, but who
+        already work with the same agencies.
+      </p>
+    {/if}
+  </div>
+{/if}

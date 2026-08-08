@@ -40,7 +40,17 @@ const LEGEND = [
     </header>
 
     <main id="main" class="flex min-h-0 flex-1 flex-col">
-      <Explorer client:only="svelte" />
+      {/*
+        `client:only` renders nothing on the server, so without a fallback the
+        first paint is an empty frame under the header — no sidebar, no search,
+        nothing to say the page is working. The slot is server-rendered and
+        replaced on hydration.
+      */}
+      <Explorer client:only="svelte">
+        <div slot="fallback" class="grid flex-1 place-items-center px-6">
+          <p class="text-sm text-ink-muted" role="status">Starting the explorer…</p>
+        </div>
+      </Explorer>
     </main>
   </div>
 </Layout>

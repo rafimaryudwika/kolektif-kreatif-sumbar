@@ -11,9 +11,9 @@
   import type { GraphNode, Neighbour, Neighbourhood } from '../lib/graph';
 
   interface Props {
-    /** The selection, already known from the overview payload. */
+    /** The selection. Detail is fetched per node, so it need not be on the canvas. */
     node: GraphNode | null;
-    onselect: (id: string) => void;
+    onselect: (node: GraphNode) => void;
     onclose: () => void;
   }
 
@@ -136,7 +136,7 @@
                   <li>
                     <button
                       type="button"
-                      onclick={() => onselect(neighbour.id)}
+                      onclick={() => onselect(neighbour)}
                       class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-raised"
                     >
                       <span

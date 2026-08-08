@@ -32,7 +32,16 @@
   let overview = $state<GraphOverview | null>(null);
   let loading = $state(true);
   let failure = $state<{ message: string; retryable: boolean } | null>(null);
-  let selectedId = $state<string | null>(null);
+  /**
+   * The selection itself, not an id to resolve against the overview.
+   *
+   * `/api/search`, `/api/node` and `/api/path` each reach the database on their
+   * own, so all three answer while the canvas is dark. Every panel already holds
+   * a whole node for anything it offers to open, and looking that id back up in
+   * the overview's map would throw the answer away — a hit the reader can see but
+   * not open is worse than no hit at all.
+   */
+  let selected = $state<GraphNode | null>(null);
   let pathIds = $state<string[]>([]);
   let tab = $state<Tab>('detail');
   let canvas = $state<GraphCanvas | null>(null);
@@ -59,7 +68,7 @@
 
   const nodes = $derived(overview?.nodes ?? []);
   const byId = $derived(new Map(nodes.map((node) => [node.id, node])));
-  const selected = $derived<GraphNode | null>(selectedId ? (byId.get(selectedId) ?? null) : null);
+  const selectedId = $derived(selected?.id ?? null);
 
   const byLabel = $derived.by(() => {
     const collate = (label: string) =>
@@ -67,16 +76,38 @@
     return { talents: collate('Talent'), skills: collate('Skill') };
   });
 
+  /**
+   * Talents holding at least one project credit.
+   *
+   * Query A walks out from the requester's own projects to the agencies that
+   * produced them, so a talent with no `COLLABORATED_ON` edge returns nothing for
+   * every skill in the list — not for want of a match, but because the traversal
+   * has nowhere to start. The recommendation panel needs the distinction to keep
+   * from sending the reader through all twelve skills for nothing.
+   */
+  const credited = $derived.by(() => {
+    const ids = new Set<string>();
+    for (const edge of overview?.edges ?? []) {
+      if (edge.type === 'COLLABORATED_ON') ids.add(edge.source);
+    }
+    return ids;
+  });
+
   /** Selecting from a list also moves the viewport, or the click looks inert. */
-  function select(id: string | null) {
-    selectedId = id;
-    if (id) canvas?.focusNode(id);
+  function open(node: GraphNode | null) {
+    selected = node;
+    if (node) canvas?.focusNode(node.id);
   }
 
-  /** Opening something from search or a path step should show its detail. */
-  function inspect(id: string) {
+  /** The canvas reports taps by id, and can only have drawn what it was given. */
+  function openById(id: string | null) {
+    open(id ? (byId.get(id) ?? null) : null);
+  }
+
+  /** Opening something from a panel should show its detail. */
+  function inspect(node: GraphNode) {
     tab = 'detail';
-    select(id);
+    open(node);
   }
 
   const empty = $derived(!loading && !failure && nodes.length === 0);
@@ -124,7 +155,7 @@
         edges={overview.edges}
         {selectedId}
         {pathIds}
-        onselect={select}
+        onselect={openById}
       />
     {/if}
   </div>
@@ -157,7 +188,7 @@
       {#if tab === 'detail'}
         <div role="tabpanel" id="panel-detail" aria-labelledby="tab-detail" class="h-full">
           {#if selected}
-            <Inspector node={selected} onselect={inspect} onclose={() => select(null)} />
+            <Inspector node={selected} onselect={inspect} onclose={() => open(null)} />
           {:else}
             <p class="p-4 text-sm text-ink-muted">
               Pick anyone on the canvas, or search above, to see who they have worked
@@ -175,7 +206,12 @@
         </div>
       {:else}
         <div role="tabpanel" id="panel-suggest" aria-labelledby="tab-suggest" class="p-4">
-          <RecommendPanel talents={byLabel.talents} skills={byLabel.skills} onselect={inspect} />
+          <RecommendPanel
+            talents={byLabel.talents}
+            skills={byLabel.skills}
+            {credited}
+            onselect={inspect}
+          />
         </div>
       {/if}
     </div>

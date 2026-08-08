@@ -7,10 +7,15 @@
 -->
 <script lang="ts">
   import { apiGet, errorMessage } from '../lib/client';
-  import type { SearchPayload, SearchResult } from '../lib/graph';
+  import type { GraphNode, SearchPayload, SearchResult } from '../lib/graph';
 
   interface Props {
-    onselect: (id: string) => void;
+    /**
+     * Handed the whole hit, not just its id: `/api/search` answers even when the
+     * overview did not, and the result carries enough to open the inspector on a
+     * node the canvas never received.
+     */
+    onselect: (result: GraphNode) => void;
   }
 
   let { onselect }: Props = $props();
@@ -100,7 +105,7 @@
             <li>
               <button
                 type="button"
-                onclick={() => onselect(result.id)}
+                onclick={() => onselect(result)}
                 class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-raised"
               >
                 <span
