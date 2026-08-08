@@ -1,11 +1,13 @@
 <!--
   HomeSearch.svelte
   Interactive search and network discovery component for the landing page.
-  Enables non-technical users to query the graph ecosystem immediately.
+  Enables non-technical users to query the graph ecosystem immediately,
+  with a social-card style popup modal for instant entity lookups.
 -->
 <script lang="ts">
+  import EntityModal from './EntityModal.svelte';
   import { apiGet, errorMessage } from '../lib/client';
-  import type { SearchPayload, SearchResult } from '../lib/graph';
+  import type { GraphNode, SearchPayload, SearchResult } from '../lib/graph';
 
   const MIN_TERM = 2;
   const DEBOUNCE_MS = 200;
@@ -16,6 +18,9 @@
   let failure = $state<string | null>(null);
   let searched = $state('');
   let isFocused = $state(false);
+
+  // Selected node for floating modal popup
+  let selectedNode = $state<GraphNode | null>(null);
 
   $effect(() => {
     const query = term.trim();
@@ -68,8 +73,17 @@
     { label: 'Producing', id: 'skill-producing', type: 'Skill' },
   ];
 
-  function navigateTo(id: string) {
-    window.location.href = `/explore?select=${encodeURIComponent(id)}`;
+  function openModal(node: GraphNode) {
+    selectedNode = node;
+    isFocused = false;
+  }
+
+  function openSample(sample: { label: string; id: string; type: NodeLabel }) {
+    selectedNode = {
+      id: sample.id,
+      label: sample.type,
+      name: sample.label,
+    };
   }
 </script>
 
@@ -91,7 +105,7 @@
         type="search"
         bind:value={term}
         onfocus={() => (isFocused = true)}
-        onblur={() => setTimeout(() => (isFocused = false), 200)}
+        onblur={() => setTimeout(() => (isFocused = false), 250)}
         placeholder="Search filmmakers, skills (e.g. Directing), projects, agencies, or collectives…"
         autocomplete="off"
         class="w-full rounded-xl border border-border bg-surface py-3.5 pr-10 pl-11 text-base text-ink shadow-lg transition placeholder:text-ink-subtle focus:border-talent focus:ring-1 focus:ring-talent focus:outline-none"
@@ -136,7 +150,7 @@
               <li>
                 <button
                   type="button"
-                  onmousedown={() => navigateTo(result.id)}
+                  onmousedown={() => openModal(result)}
                   class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface"
                 >
                   <span
@@ -167,7 +181,7 @@
     {#each SAMPLE_QUERIES as sample (sample.id)}
       <button
         type="button"
-        onclick={() => navigateTo(sample.id)}
+        onclick={() => openSample(sample)}
         class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-ink-muted transition hover:border-talent hover:text-ink hover:bg-surface-raised"
       >
         <span class="size-1.5 rounded-full {dotClass[sample.type]}" aria-hidden="true"></span>
@@ -265,4 +279,7 @@
       </div>
     </a>
   </div>
+
+  <!-- Social-card style floating modal popup -->
+  <EntityModal node={selectedNode} onclose={() => (selectedNode = null)} />
 </div>
