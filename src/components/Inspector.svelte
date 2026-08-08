@@ -86,6 +86,17 @@
     Skill: 'bg-skill',
     Collective: 'bg-collective',
   };
+
+  let copied = $state(false);
+
+  function copyShareLink() {
+    if (!node || typeof window === 'undefined') return;
+    const url = `${window.location.origin}/explore?select=${encodeURIComponent(node.id)}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    });
+  }
 </script>
 
 {#if node}
@@ -99,13 +110,22 @@
         </p>
         <h2 class="mt-1.5 text-lg font-semibold text-balance">{node.name}</h2>
       </div>
-      <button
-        type="button"
-        onclick={onclose}
-        class="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-raised hover:text-ink"
-      >
-        Close
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          onclick={copyShareLink}
+          class="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-raised hover:text-ink"
+        >
+          {copied ? 'Copied! ✓' : 'Share 🔗'}
+        </button>
+        <button
+          type="button"
+          onclick={onclose}
+          class="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-ink-muted hover:bg-surface-raised hover:text-ink"
+        >
+          Close
+        </button>
+      </div>
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto p-4">

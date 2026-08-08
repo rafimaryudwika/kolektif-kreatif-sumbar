@@ -13,20 +13,32 @@
 
   interface Props {
     talents: GraphNode[];
+    initialFrom?: string;
+    initialTo?: string;
     /** Highlights the route on the canvas; called with [] to clear it. */
     onhighlight: (ids: string[]) => void;
     onselect: (node: GraphNode) => void;
   }
 
-  let { talents, onhighlight, onselect }: Props = $props();
+  let { talents, initialFrom = '', initialTo = '', onhighlight, onselect }: Props = $props();
 
   // The overview failed or came back empty. Without it the two selects have
   // nothing in them, and a form of empty dropdowns above "pick two people"
   // invites a click that cannot do anything. Say what is missing instead.
   const unavailable = $derived(talents.length === 0);
 
-  let fromId = $state('');
-  let toId = $state('');
+  let fromId = $state(initialFrom);
+  let toId = $state(initialTo);
+
+  $effect(() => {
+    if (initialFrom && fromId !== initialFrom) {
+      fromId = initialFrom;
+    }
+    if (initialTo && toId !== initialTo) {
+      toId = initialTo;
+    }
+  });
+
   let result = $state<PathResult | null>(null);
   let searched = $state(false);
   let loading = $state(false);
@@ -35,14 +47,12 @@
   const sameTalent = $derived(fromId !== '' && fromId === toId);
   const ready = $derived(fromId !== '' && toId !== '' && !sameTalent);
 
-  async function trace(event: SubmitEvent) {
-    event.preventDefault();
-    if (!ready) return;
-
+  async function executeTrace(from: string, to: string) {
+    if (!from || !to || from === to) return;
     loading = true;
     failure = null;
     try {
-      const payload = await apiGet<PathPayload>('/api/path', { from: fromId, to: toId });
+      const payload = await apiGet<PathPayload>('/api/path', { from, to });
       result = payload.path;
       searched = true;
       onhighlight(payload.path?.pathNodes.map((node) => node.id) ?? []);
@@ -54,6 +64,18 @@
     } finally {
       loading = false;
     }
+  }
+
+  $effect(() => {
+    if (initialFrom && initialTo && initialFrom !== initialTo) {
+      void executeTrace(initialFrom, initialTo);
+    }
+  });
+
+  async function trace(event: SubmitEvent) {
+    event.preventDefault();
+    if (!ready) return;
+    await executeTrace(fromId, toId);
   }
 
   function nameOf(id: string): string {

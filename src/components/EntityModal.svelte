@@ -141,6 +141,16 @@
       .join('')
       .toUpperCase();
   }
+  let copied = $state(false);
+
+  function copyShareLink() {
+    if (!currentNode || typeof window === 'undefined') return;
+    const url = `${window.location.origin}/explore?select=${encodeURIComponent(currentNode.id)}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      copied = true;
+      setTimeout(() => (copied = false), 2000);
+    });
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -282,20 +292,29 @@
             Click any profile above to explore deeper in this popup.
           </p>
 
-          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onclick={onclose}
-              class="rounded-xl border border-border bg-surface px-4 py-2 text-xs font-semibold text-ink transition hover:bg-border"
+              onclick={copyShareLink}
+              class="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-muted transition hover:bg-border hover:text-ink"
             >
-              Close
+              {copied ? 'Copied! ✓' : 'Copy Link 🔗'}
             </button>
+
+            {#if currentNode.label === 'Talent'}
+              <a
+                href="/explore?tab=path&from={encodeURIComponent(currentNode.id)}"
+                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-project/40 bg-project/10 px-3.5 py-2 text-xs font-semibold text-project transition hover:bg-project/20"
+              >
+                <span>Find Path 🔗</span>
+              </a>
+            {/if}
 
             <a
               href="/explore?select={encodeURIComponent(currentNode.id)}"
               class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-talent px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-blue-600 focus:outline-none"
             >
-              <span>Explore in Graph Canvas 🕸️</span>
+              <span>Explore Canvas 🕸️</span>
             </a>
           </div>
         </div>

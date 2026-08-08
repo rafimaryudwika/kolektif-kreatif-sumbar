@@ -46,6 +46,9 @@
   let tab = $state<Tab>('detail');
   let canvas = $state<GraphCanvas | null>(null);
 
+  let initialFrom = $state('');
+  let initialTo = $state('');
+
   async function load() {
     loading = true;
     failure = null;
@@ -55,6 +58,11 @@
         const params = new URLSearchParams(window.location.search);
         const selectId = params.get('select') || params.get('node');
         const tabParam = params.get('tab');
+        const fromParam = params.get('from');
+        const toParam = params.get('to');
+
+        if (fromParam) initialFrom = fromParam;
+        if (toParam) initialTo = toParam;
 
         if (tabParam && (tabParam === 'detail' || tabParam === 'path' || tabParam === 'suggest')) {
           tab = tabParam;
@@ -216,6 +224,8 @@
         <div role="tabpanel" id="panel-path" aria-labelledby="tab-path" class="p-4">
           <PathPanel
             talents={byLabel.talents}
+            {initialFrom}
+            {initialTo}
             onhighlight={(ids) => (pathIds = ids)}
             onselect={inspect}
           />
