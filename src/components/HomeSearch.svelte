@@ -7,7 +7,8 @@
 <script lang="ts">
   import EntityModal from './EntityModal.svelte';
   import { apiGet, errorMessage } from '../lib/client';
-  import type { GraphNode, SearchPayload, SearchResult } from '../lib/graph';
+  import { FEATURED_ENTITIES } from '../lib/featured';
+  import type { GraphNode, NodeLabel, SearchPayload, SearchResult } from '../lib/graph';
 
   const MIN_TERM = 2;
   const DEBOUNCE_MS = 200;
@@ -55,9 +56,7 @@
     };
   });
 
-  type NodeLabel = 'Talent' | 'Project' | 'Agency' | 'Skill' | 'Collective';
-
-  const dotClass: Record<string, string> = {
+  const dotClass: Record<NodeLabel, string> = {
     Talent: 'bg-talent',
     Project: 'bg-project',
     Agency: 'bg-agency',
@@ -65,25 +64,11 @@
     Collective: 'bg-collective',
   };
 
-  const SAMPLE_QUERIES: Array<{ label: string; id: string; type: NodeLabel }> = [
-    { label: 'Directing', id: 'skill-directing', type: 'Skill' },
-    { label: 'Cinematography', id: 'skill-cinematography', type: 'Skill' },
-    { label: 'CineSumbar', id: 'collective-cinesumbar', type: 'Collective' },
-    { label: 'Sound Design', id: 'skill-sound-design', type: 'Skill' },
-    { label: 'Producing', id: 'skill-producing', type: 'Skill' },
-  ];
+  const SAMPLE_QUERIES = FEATURED_ENTITIES;
 
   function openModal(node: GraphNode) {
     selectedNode = node;
     isFocused = false;
-  }
-
-  function openSample(sample: { label: string; id: string; type: NodeLabel }) {
-    selectedNode = {
-      id: sample.id,
-      label: sample.type,
-      name: sample.label,
-    };
   }
 </script>
 
@@ -177,15 +162,15 @@
 
   <!-- Quick Search Pills -->
   <div class="flex flex-wrap items-center gap-2 text-xs">
-    <span class="font-medium text-ink-subtle">💡 Sample Entities:</span>
+    <span class="font-medium text-ink-subtle">Or open one of each node type:</span>
     {#each SAMPLE_QUERIES as sample (sample.id)}
       <button
         type="button"
-        onclick={() => openSample(sample)}
+        onclick={() => openModal(sample)}
         class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-ink-muted transition hover:border-talent hover:text-ink hover:bg-surface-raised"
       >
-        <span class="size-1.5 rounded-full {dotClass[sample.type]}" aria-hidden="true"></span>
-        {sample.label}
+        <span class="size-1.5 rounded-full {dotClass[sample.label]}" aria-hidden="true"></span>
+        {sample.name}
       </button>
     {/each}
   </div>

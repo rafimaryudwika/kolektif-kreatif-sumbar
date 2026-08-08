@@ -25,6 +25,7 @@ import {
   writeQuery,
 } from '../src/lib/cognodb.ts';
 import { PATH_QUERY, RECOMMENDATIONS_QUERY } from '../src/lib/graph.ts';
+import { FEATURED_ENTITIES } from '../src/lib/featured.ts';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -734,6 +735,29 @@ async function verify(): Promise<void> {
     'No isolated Talent',
     isolated.length === 0,
     isolated.length === 0 ? 'every talent has at least one edge' : isolated.map((r) => r.name).join(', '),
+  );
+
+  // The landing page's one-click chips are a hand-picked list of ids. Two of
+  // them once shipped pointing at nodes this script had never written, so every
+  // click on the public demo opened a modal reading "Unable to load
+  // connections". Resolving them here is what stops that recurring: the seed
+  // fails rather than the homepage.
+  const featured = await readQuery<{ id: string; label: string }>(
+    `MATCH (n) WHERE n.id IN $ids RETURN n.id AS id, labels(n)[0] AS label`,
+    { ids: FEATURED_ENTITIES.map((entity) => entity.id) },
+  );
+  const foundLabel = new Map(featured.map((row) => [row.id, row.label]));
+  const mismatched = FEATURED_ENTITIES.filter(
+    (entity) => foundLabel.get(entity.id) !== entity.label,
+  );
+  check(
+    'Featured entities resolve',
+    mismatched.length === 0,
+    mismatched.length === 0
+      ? `all ${FEATURED_ENTITIES.length} landing-page chips resolve to their declared label`
+      : mismatched
+          .map((e) => `${e.id} expected ${e.label}, got ${foundLabel.get(e.id) ?? 'no such node'}`)
+          .join('; '),
   );
 }
 
