@@ -245,6 +245,54 @@ async function main() {
     return records.map((r) => r.get('id')).join(', ');
   });
 
+  // Expected to FAIL on this instance, and the one probe here that returns a
+  // wrong answer rather than an error: EXISTS() over a pattern does not read
+  // the graph. Once both endpoints are bound it answers the same way for every
+  // pair, so it must be checked against a pair that shares a neighbour *and* a
+  // pair that does not. A single positive case would pass on a constant true
+  // and prove nothing — an earlier version of this probe did exactly that and
+  // reported the defect as fixed. Note the constant is `true` on this fixture
+  // and `false` on the seeded graph for the same pattern, so neither answer
+  // alone means anything. Query A needs this shape to express "people you have
+  // never worked with" and uses COUNT {} instead, probed below. See
+  // `docs/database.md` §3 Query A. A PASS here means EXISTS() is fixed.
+  await probe(
+    'EXISTS() over a pattern reads the graph',
+    async () => {
+      // `c` and `g` both point at `d`; `b` and `f` share nothing.
+      const shared = await read(
+        `MATCH (c:_Probe { id: 'c' }), (g:_Probe { id: 'g' })
+         RETURN EXISTS((c)-[:_PROBE_LINK]->(:_Probe)<-[:_PROBE_LINK]-(g)) AS hit`,
+      );
+      const apart = await read(
+        `MATCH (b:_Probe { id: 'b' }), (f:_Probe { id: 'f' })
+         RETURN EXISTS((b)-[:_PROBE_LINK]->(:_Probe)<-[:_PROBE_LINK]-(f)) AS hit`,
+      );
+      const answers = `shared=${shared[0].get('hit')} apart=${apart[0].get('hit')}`;
+      if (shared[0].get('hit') !== true || apart[0].get('hit') !== false) {
+        throw new Error(`expected shared=true apart=false, got ${answers}`);
+      }
+      return answers;
+    },
+    { expectUnsupported: true },
+  );
+
+  await probe('COUNT {} distinguishes a shared neighbour from none', async () => {
+    const shared = await read(
+      `MATCH (c:_Probe { id: 'c' }), (g:_Probe { id: 'g' })
+       RETURN COUNT { (c)-[:_PROBE_LINK]->(:_Probe)<-[:_PROBE_LINK]-(g) } AS n`,
+    );
+    const apart = await read(
+      `MATCH (b:_Probe { id: 'b' }), (f:_Probe { id: 'f' })
+       RETURN COUNT { (b)-[:_PROBE_LINK]->(:_Probe)<-[:_PROBE_LINK]-(f) } AS n`,
+    );
+    const answers = `shared=${shared[0].get('n')} apart=${apart[0].get('n')}`;
+    if (Number(shared[0].get('n')) < 1 || Number(apart[0].get('n')) !== 0) {
+      throw new Error(`expected shared>=1 apart=0, got ${answers}`);
+    }
+    return answers;
+  });
+
   await probe('elementId()', async () => {
     const records = await read('MATCH (p:_Probe { id: $id }) RETURN elementId(p) AS eid', {
       id: 'a',

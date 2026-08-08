@@ -34,13 +34,28 @@ export interface GraphEdge {
   role: string | null;
 }
 
-/** Query A: multi-hop network traversal. */
+/**
+ * Query A: multi-hop network traversal.
+ *
+ * People with a given skill who share a production agency with you but whom you
+ * have never actually worked with.
+ *
+ * That last clause is spelled `COUNT { … } = 0` rather than the more obvious
+ * `NOT (t1)-[:COLLABORATED_ON]->(:Project)<-[:COLLABORATED_ON]-(t2)` because
+ * `EXISTS()` over a pattern does not read the graph on this instance. With both
+ * endpoints bound it answers the same way for every pair regardless of the data
+ * — `false` for every `Talent` pair here, including pairs a plain `MATCH` proves
+ * share a project. Negating a constant false excludes nobody, so the
+ * recommendations quietly filled up with people the requester was already
+ * working with. `COUNT { }` does read the graph. See `docs/database.md` §3
+ * Query A for the full characterisation; `npm run probe` re-checks it.
+ */
 export const RECOMMENDATIONS_QUERY = `
-MATCH (t1:Talent {id: $talentId})-[c1:COLLABORATED_ON]->(p1:Project)
-      -[:PRODUCED_BY]->(agency:Agency)
+MATCH (t1:Talent {id: $talentId})-[:COLLABORATED_ON]->(p1:Project)-[:PRODUCED_BY]->(agency:Agency)
 MATCH (agency)<-[:PRODUCED_BY]-(p2:Project)
       <-[c2:COLLABORATED_ON]-(t2:Talent)-[:HAS_SKILL]->(s:Skill {name: $skill})
 WHERE t1 <> t2
+  AND COUNT { (t1)-[:COLLABORATED_ON]->(:Project)<-[:COLLABORATED_ON]-(t2) } = 0
 RETURN DISTINCT
   t2.id       AS talentId,
   t2.name     AS talentName,

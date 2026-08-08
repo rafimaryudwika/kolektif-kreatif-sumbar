@@ -205,11 +205,11 @@ Four hops from talent to talent, five relationships in total:
 `t1 → p1 → agency ← p2 ← t2 → skill`.
 
 ```cypher
-MATCH (t1:Talent {id: $talentId})-[c1:COLLABORATED_ON]->(p1:Project)
-      -[:PRODUCED_BY]->(agency:Agency)
+MATCH (t1:Talent {id: $talentId})-[:COLLABORATED_ON]->(p1:Project)-[:PRODUCED_BY]->(agency:Agency)
 MATCH (agency)<-[:PRODUCED_BY]-(p2:Project)
       <-[c2:COLLABORATED_ON]-(t2:Talent)-[:HAS_SKILL]->(s:Skill {name: $skill})
 WHERE t1 <> t2
+  AND COUNT { (t1)-[:COLLABORATED_ON]->(:Project)<-[:COLLABORATED_ON]-(t2) } = 0
 RETURN DISTINCT
   t2.id       AS talentId,
   t2.name     AS talentName,
@@ -225,6 +225,51 @@ LIMIT 20;
 
 The returned `viaAgency` / `yourProject` / `theirProject` triple is what lets the
 UI explain *why* someone was recommended instead of just listing them.
+
+#### Why `COUNT { … } = 0`, and not `NOT (t1)-[…]-(t2)`
+
+"People you have never worked with" reads naturally as a negated pattern:
+
+```cypher
+-- Correct Cypher. Wrong answers on this instance.
+WHERE NOT (t1)-[:COLLABORATED_ON]->(:Project)<-[:COLLABORATED_ON]-(t2)
+```
+
+`EXISTS()` over a pattern does not read the graph on CognoDB. Once both
+endpoints are bound it answers the same way for every pair, whatever the data
+says:
+
+```cypher
+MATCH (a:Talent {id: 'talent-rian-syahputra'}), (b:Talent {id: 'talent-sari-wulandari'})
+RETURN EXISTS((a)-[:COLLABORATED_ON]->(:Project)<-[:COLLABORATED_ON]-(b)) AS shared
+-- => false. A plain MATCH proves this pair shares a project.
+--    Swap in a pair that shares nothing: also false.
+```
+
+Which constant comes back is not predictable from the query. The same directed
+two-hop pattern that is uniformly false across `Talent` above is uniformly *true*
+on the probe's own fixture. Written undirected it is true for every pair,
+including two nodes with nothing between them, and a single-hop
+`EXISTS((a)-[:COLLABORATED_ON]->(b))` with both ends bound is likewise true
+regardless. So the failure is not that the predicate is too strict or too loose
+— it is that the predicate is a constant that happens to look plausible.
+
+That is what made the bug quiet. Against the seeded graph the constant is
+`false`, so a negation of it excludes nobody, and the recommendation list filled
+with people the requester had already worked with — including rows where
+`yourProject` and `theirProject` were the same production. Nothing errors; the
+query just answers a different question.
+
+`COUNT { }` does read the graph, and returns the right answer for both a
+sharing pair and a non-sharing one. Substituting it changed no results across
+40 talent-and-skill combinations against the seeded graph, and cost nothing
+measurable: both spellings ran at 737 ms per query, which is round-trip latency
+to the hosted instance rather than query time.
+
+`npm run probe` checks both spellings against a fixture with a sharing pair
+*and* a non-sharing pair. Checking only a pair that shares would pass on a
+constant `true` and prove nothing — an earlier version of the probe did exactly
+that and reported the defect as fixed.
 
 ### Query B: Shortest path between two talents
 
