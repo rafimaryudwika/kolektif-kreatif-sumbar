@@ -41,6 +41,21 @@ export class BadRequestError extends Error {
 }
 
 /**
+ * Thrown when the request was well-formed but names something that is not in
+ * the graph. Distinct from `BadRequestError` so a mistyped id reads as 404
+ * rather than blaming the caller's syntax.
+ */
+export class NotFoundError extends Error {
+  readonly code: string;
+
+  constructor(message: string, code = 'NOT_FOUND') {
+    super(message);
+    this.name = 'NotFoundError';
+    this.code = code;
+  }
+}
+
+/**
  * Maps a thrown value onto an HTTP response.
  *
  * The database being unreachable is a 503 with `Retry-After`, which is both
@@ -51,6 +66,10 @@ export class BadRequestError extends Error {
 export function toErrorResponse(error: unknown, context: string): Response {
   if (error instanceof BadRequestError) {
     return json({ error: { code: error.code, message: error.message } }, 400);
+  }
+
+  if (error instanceof NotFoundError) {
+    return json({ error: { code: error.code, message: error.message } }, 404);
   }
 
   if (error instanceof DatabaseUnavailableError) {
