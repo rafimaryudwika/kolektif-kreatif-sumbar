@@ -26,7 +26,7 @@ Executing these queries in SQL requires expensive, deeply nested `JOIN` operatio
 
 * **Graph Model Soundness**: Typed relationships, labeled nodes, and proper property modeling.
 * **Query Safety**: 100% parameterized Cypher queries via the official Neo4j driver (zero string concatenation).
-* **UX & Resilience**: Clean loading states, empty fallback states, error boundaries for DB timeouts, and full mobile responsiveness.
+* **UX & Resilience**: Clean loading states, empty fallback states, error boundaries for DB timeouts, and full mobile responsiveness. The stacked narrow-width layout is captured at 390px in `docs/screenshots/06-mobile.png`; the unreachable-database and empty-graph states were walked with the network layer stubbed, and both leave search working and hide the panels that cannot answer.
 
 ## 5. Submission Deliverables
 
@@ -35,10 +35,15 @@ are required; the last two are the ones easiest to forget until the deadline.
 
 | Deliverable | Status |
 | --- | --- |
-| Public GitHub repository | pending |
-| README: use case, *why a graph database*, data model diagram, setup steps, queries explained, UI screenshots | pending — source material in `docs/database.md` §1 |
-| Hosted demo link (Vercel) | pending |
-| Short screen recording of the working app | pending |
+| Public GitHub repository | done — [rafimaryudwika/kolektif-kreatif-sumbar](https://github.com/rafimaryudwika/kolektif-kreatif-sumbar) |
+| README: use case, *why a graph database*, data model diagram, setup steps, queries explained, UI screenshots | done — `README.md`, screenshots in `docs/screenshots/` |
+| Hosted demo link (Vercel) | pending — the three `COGNODB_*` variables go into the project settings |
+| Short screen recording of the working app | pending — blocked on the hosted demo |
+
+The repository is already public, so its history was audited before this was
+recorded: `.env` appears in no commit on any branch, `.env.example` is the only
+env file ever committed, and `COGNODB_PASSWORD=` has been empty in every
+revision of it. No credential to rotate.
 
 Non-negotiables the brief calls out explicitly, all of which are already in
 place at the library layer:
