@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",
-    "probe": "node scripts/probe-cognodb.js"
+    "probe": "node scripts/probe-cognodb.js",
+    "seed": "node --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@astrojs/svelte": "^9.0.1",
