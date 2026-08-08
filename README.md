@@ -42,6 +42,12 @@ Share both hand back `/explore?select=<id>`, and Find Path on a talent gives
 `/explore?tab=path&from=<id>` with the dropdown already set. A producer can send
 someone a person rather than instructions for finding them.
 
+## Demo Video
+
+<video src="docs/video-demonstration.webm" controls width="100%"></video>
+
+Walkthrough covering graph exploration, path finding between talents, and multi-hop recommendations.
+
 ## Screenshots
 
 The landing page checks the database on every request, so the badge reflects the
