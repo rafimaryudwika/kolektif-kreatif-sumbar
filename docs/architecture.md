@@ -3,16 +3,21 @@
 ## 1. Stack Topology
 
 * **Application tier**: Astro 7 in SSR mode (`output: 'server'`), deployed to
-  Vercel through the `@astrojs/vercel` adapter. Interactive islands are Svelte 5;
-  the graph canvas is Cytoscape.js with the `fcose` force-directed layout,
-  mounted `client:only="svelte"`.
+  Vercel through the `@astrojs/vercel` adapter. Interactive islands are Svelte 5.
+  The graph canvas is Cytoscape.js with the `fcose` force-directed layout,
+  mounted `client:only="svelte"` because that layout touches `window`. The
+  landing page's search and entity card (`HomeSearch.svelte`, which owns
+  `EntityModal.svelte`) mount `client:load` instead — they render on the server,
+  so the search box and its chips are in the first HTML response.
 * **Database tier**: CognoDB Cloud, free-tier instance `c0`
   (0.5 vCPU, 256 MB RAM, 1 GB disk, 200 connections), reached over
   `bolt+s://` — Bolt 5.4 against a Neo4j 5.26 server.
 * **Driver**: the official `neo4j-driver` for Node.js.
 
 ```text
-[ Browser — Svelte island: graph canvas + inspector ]
+[ Browser — Svelte islands ]
+    landing:  search + entity card
+    explorer: graph canvas + inspector
             │
             │ fetch() → JSON
             ▼
@@ -113,6 +118,47 @@ do encode their type, but depending on that would couple every request to the
 seed script's naming, and the client already knows the label from whatever
 payload handed it the id.
 
+### 3.3 Two callers per route
+
+`/api/search` and `/api/node` each serve two islands. The explorer calls them for
+its search box and inspector; the landing page calls the same two for its search
+box and entity card. Adding graph traversal to the homepage therefore added no
+endpoint and no query — `EntityModal` walks by calling `/api/node` again with the
+neighbour the visitor clicked, and keeps the nodes it came from on a stack so the
+back button can replay them.
+
+The label `EntityModal` sends is the one that arrived in a previous response,
+never a value a visitor typed, so §3.2's allowlist is checking server-issued data
+on this path. It is still checked; a client is a client.
+
+### 3.4 The explorer's opening state comes from the URL
+
+`Explorer.svelte` reads the query string once, after `/api/graph` resolves, so
+every view the app can show is addressable:
+
+| Parameter | Effect |
+| --- | --- |
+| `select=<id>` (or `node=<id>`) | Opens the inspector on that node. |
+| `tab=detail\|path\|suggest` | Chooses the panel. Anything else is ignored. |
+| `from=<id>`, `to=<id>` | Fills the path form; both present traces immediately. |
+
+`select` is resolved against the overview payload already in memory rather than
+fetched, so an id that is not in the graph opens nothing instead of erroring. The
+Copy Link and Share buttons produce `?select=`, and Find Path produces
+`?tab=path&from=`. Both use `navigator.clipboard`, which needs a secure context —
+they work on the deployed HTTPS site and on `localhost`, and silently do nothing
+if the page is ever served over plain HTTP from another host.
+
+### 3.5 Featured entities are checked by the seed
+
+The landing page offers five one-click nodes, one per type, listed in
+`src/lib/featured.ts`. They are hand-picked, so they can drift from the dataset,
+and once did: two ids shipped that the seed had never written, and clicking them
+opened the entity card on "Unable to load connections". `scripts/seed.ts` now
+resolves every id in that list against the graph it just wrote and fails the seed
+on a missing node or a mismatched label — the same reasoning that already makes
+Queries A and B part of the seed rather than a manual follow-up.
+
 ## 4. Environment Variables
 
 Read strictly from the runtime environment and never committed. `.env` is
@@ -132,8 +178,8 @@ deployed build.
 | Command | Purpose |
 | --- | --- |
 | `npm run probe` | Runs `scripts/probe-cognodb.js` — checks connectivity and confirms the Cypher features this app relies on (`shortestPath`, variable-length paths, constraints, `MERGE` idempotency). Writes only under a `_Probe` label and cleans up after itself, so it is safe against a seeded database. |
-| `npm run seed` | Wipes and repopulates the graph with the mock dataset. |
-| `npm run check` | `astro check` — type checking across `.astro`, `.ts`, `.svelte`. |
+| `npm run seed` | Wipes and repopulates the graph with the mock dataset, then runs the app's own Query A and Query B against what it just wrote and resolves the landing page's featured ids. Exits non-zero if any check fails. |
+| `npm run check` | `astro check`, then `svelte-check --threshold error`. Both are needed: `astro check` does not read inside `.svelte` files, so on its own it passes a component calling a function it never imported. |
 | `npm run build` | Production SSR build through the Vercel adapter. |
 
 ## 6. Known Advisory

@@ -22,8 +22,9 @@ in whoever has been in the industry longest.
 SumbuKolektif makes it queryable. Three things it answers:
 
 1. **Who is out there, and how is anyone connected to anyone?** Search a person,
-   project, agency, collective or skill; open it; see everything one hop away and
-   keep walking.
+   project, agency, collective or skill from the landing page; open it; see
+   everything one hop away and keep walking, either in the card that opens over
+   the page or on the canvas.
 2. **Who should I hire that I have not worked with?** Pick a person and a skill.
    The app returns people with that skill reachable through a shared production
    agency, and excludes anyone the requester has already shared a project with —
@@ -36,36 +37,49 @@ Every answer carries its evidence. A recommendation names the agency and both
 productions that link the two people, so the reader can judge whether the
 introduction is worth making.
 
+Any node the app can show has a URL. The card's Copy Link and the inspector's
+Share both hand back `/explore?select=<id>`, and Find Path on a talent gives
+`/explore?tab=path&from=<id>` with the dropdown already set. A producer can send
+someone a person rather than instructions for finding them.
+
 ## Screenshots
 
 The landing page checks the database on every request, so the badge reflects the
-live instance rather than build time.
+live instance rather than build time. The search box queries the graph directly;
+the row of chips below it holds one node of each type, for a visitor who does not
+yet know a name to type.
 
-![Landing page with a live CognoDB connection badge](docs/screenshots/01-home.png)
+![Landing page: search box, one chip per node type, and a live CognoDB connection badge](docs/screenshots/01-home.png)
+
+A search hit or a chip opens the entity card. Its neighbours are buttons, so a
+visitor can walk several hops without leaving the page, and back up through the
+ones they have already opened.
+
+![Entity card for Rian Syahputra: two skills, one collective, three directing credits](docs/screenshots/02-entity-modal.png)
 
 All 73 nodes, laid out force-directed. Colour encodes type.
 
-![The network explorer with the full graph laid out](docs/screenshots/02-explorer.png)
+![The network explorer with the full graph laid out](docs/screenshots/03-explorer.png)
 
 Opening a talent shows their skills, collectives and credits, with the role they
 held on each production. Every neighbour is clickable.
 
-![Inspector open on Rian Syahputra, showing skills, collective and three directing credits](docs/screenshots/03-inspector.png)
+![Inspector open on Rian Syahputra, showing skills, collective and three directing credits](docs/screenshots/04-inspector.png)
 
 The path finder reports degrees of separation, then reads the chain back as a
 sentence and highlights it on the canvas. This route runs through a skill both
 people hold and a festival they both crewed.
 
-![Path panel: Rian Syahputra to Wulan Safitri, two introductions away over four hops](docs/screenshots/04-path.png)
+![Path panel: Rian Syahputra to Wulan Safitri, two introductions away over four hops](docs/screenshots/05-path.png)
 
 The recommendation explains itself: which agency, which production on each side,
 and the role that person held.
 
-![Suggest panel recommending Tia Rahmadani, a DoP reachable through Batang Arau Media](docs/screenshots/05-recommendations.png)
+![Suggest panel recommending Tia Rahmadani, a DoP reachable through Batang Arau Media](docs/screenshots/06-recommendations.png)
 
 Narrow widths stack the panels rather than splitting the screen.
 
-![The explorer at 390px, canvas above and inspector below](docs/screenshots/06-mobile.png)
+![The explorer at 390px, canvas above and inspector below](docs/screenshots/07-mobile.png)
 
 ---
 
@@ -196,7 +210,7 @@ The seeded dataset holds 73 nodes and 161 relationships: 30 talents, 20 projects
 ## How it works
 
 ```text
-[ Browser — Svelte island: graph canvas + inspector ]
+[ Browser — Svelte islands: home search + entity card, graph canvas + inspector ]
             │
             │ fetch() → JSON
             ▼
@@ -210,12 +224,21 @@ The seeded dataset holds 73 nodes and 161 relationships: 30 talents, 20 projects
 Nothing is prerendered. Every page depends on live graph data, so `astro.config`
 sets `output: 'server'` and each request renders on a Vercel Function.
 
-**The canvas is a client-only island.** Cytoscape's `fcose` layout touches
-`window`, so `GraphCanvas.svelte` mounts with `client:only="svelte"` and never
-runs during SSR. That leaves the server with nothing to paint on first request,
-which is why `explore.astro` passes a `slot="fallback"` — it is server-rendered
-and swapped out on hydration, so the first frame says "Starting the explorer…"
-instead of being blank. The island calls `cy.destroy()` on unmount.
+**Two islands, two hydration directives, for two different reasons.**
+`GraphCanvas.svelte` is `client:only="svelte"` because Cytoscape's `fcose` layout
+touches `window` and would throw during SSR. That leaves the server with nothing
+to paint on first request, which is why `explore.astro` passes a
+`slot="fallback"` — server-rendered, swapped out on hydration, so the first frame
+says "Starting the explorer…" instead of being blank. The island calls
+`cy.destroy()` on unmount. `HomeSearch.svelte` is `client:load` instead: it
+renders fine on the server, so the search box, the chips and the three cards are
+in the first HTML response and are readable before any JavaScript arrives.
+
+**Deep links are the handoff between the two.** The explorer reads its opening
+state from the query string, so a URL is enough to describe a view: `?select=<id>`
+(or `?node=<id>`) opens the inspector on that node, `?tab=detail|path|suggest`
+picks the panel, and `?from=<id>&to=<id>` fills the path form and traces it
+without a click. That is what the card's Copy Link and Find Path buttons produce.
 
 **One driver per process.** All database access goes through the singleton in
 `src/lib/cognodb.ts`; nothing else calls `neo4j.driver()`. A serverless function
@@ -250,6 +273,11 @@ Validation and error mapping are the only logic in a route.
 | `/api/recommendations` | `talentId`, `skill` | Query A. |
 | `/api/path` | `from`, `to` | Query B. |
 | `/api/health` | — | 503 when the database is unreachable. |
+
+`/api/search` and `/api/node` each serve two callers. The explorer uses them for
+its search box and inspector; the landing page uses the same two for its search
+box and entity card, which is why walking the graph from the homepage needed no
+new endpoint.
 
 ### When things break
 
@@ -435,19 +463,21 @@ imported, and another handing a prop the wrong shape.
 
 ```text
 src/
-├── components/     Svelte islands: GraphCanvas, Inspector, SearchBox,
-│                   PathPanel, RecommendPanel, and the Explorer that owns them
+├── components/     Svelte islands: HomeSearch and EntityModal on the landing
+│                   page; GraphCanvas, Inspector, SearchBox, PathPanel,
+│                   RecommendPanel, and the Explorer that owns them
 ├── layouts/        Layout.astro
 ├── lib/
 │   ├── cognodb.ts       The driver singleton, readQuery(), checkHealth()
 │   ├── graph.ts         Every Cypher query, one exported function each
 │   ├── api.ts           jsonOk, toErrorResponse, requireParam
 │   ├── client.ts        Typed fetch wrapper used by the islands
+│   ├── featured.ts      The landing page's one-click nodes, checked by the seed
 │   ├── graph-style.ts   Cytoscape stylesheet, tokens read from CSS at mount
 │   └── relationships.ts Relationship types rendered as English
 ├── pages/
 │   ├── api/        graph, node, search, recommendations, path, health
-│   ├── index.astro Landing page with the live connection badge
+│   ├── index.astro Landing page: live connection badge, search, entity legend
 │   └── explore.astro
 └── styles/global.css    Tailwind v4 @theme tokens
 
@@ -459,6 +489,7 @@ docs/
 ├── PRD.md               Scope and deliverables
 ├── database.md          Schema, all five queries, and the reasoning behind them
 ├── architecture.md      Connection lifecycle, error taxonomy, API contract
+├── demo-script.md       Beats for the screen recording
 └── design-system.md     Tokens, type scale, motion
 ```
 

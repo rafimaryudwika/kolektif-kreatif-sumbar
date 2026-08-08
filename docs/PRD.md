@@ -18,15 +18,16 @@ Executing these queries in SQL requires expensive, deeply nested `JOIN` operatio
 
 ## 3. Core Capabilities & Scope
 
-1. **Graph Network Explorer**: A non-technical UI to visually traverse and search nodes (`Talent`, `Project`, `Agency`, `Collective`, `Skill`) and their directional relationships.
+1. **Graph Network Explorer**: A non-technical UI to visually traverse and search nodes (`Talent`, `Project`, `Agency`, `Collective`, `Skill`) and their directional relationships. Entry is from the landing page — a live search across all five labels, plus one pre-picked node per type for a visitor with no name in mind — and opens an entity card whose neighbours are themselves clickable, so shallow traversal happens before the canvas is ever loaded.
 2. **Multi-Hop Collaboration Discovery**: Query engine designed to execute $\ge 2$-hop traversals to recommend crew members based on implicit mutual networks. The shipped query is 4 hops talent-to-talent.
 3. **Shortest Path Finder**: Calculate degrees of separation between any two talents, and show the path that produced the answer — including routes through shared collectives that no project-based query would find.
+4. **Addressable views**: Every node and both queries have a URL. `/explore?select=<id>` opens the inspector on a node, `?tab=` picks a panel, and `?from=&to=` traces a path on load, so a result can be sent to someone rather than described.
 
 ## 4. Evaluation Criteria Alignment
 
 * **Graph Model Soundness**: Typed relationships, labeled nodes, and proper property modeling.
 * **Query Safety**: 100% parameterized Cypher queries via the official Neo4j driver (zero string concatenation).
-* **UX & Resilience**: Clean loading states, empty fallback states, error boundaries for DB timeouts, and full mobile responsiveness. The stacked narrow-width layout is captured at 390px in `docs/screenshots/06-mobile.png`; the unreachable-database and empty-graph states were walked with the network layer stubbed, and both leave search working and hide the panels that cannot answer.
+* **UX & Resilience**: Clean loading states, empty fallback states, error boundaries for DB timeouts, and full mobile responsiveness. The stacked narrow-width layout is captured at 390px in `docs/screenshots/07-mobile.png`; the unreachable-database and empty-graph states were walked with the network layer stubbed, and both leave search working and hide the panels that cannot answer. UI copy is English throughout, per the assignment brief.
 
 ## 5. Submission Deliverables
 

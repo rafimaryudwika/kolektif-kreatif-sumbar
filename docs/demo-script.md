@@ -1,8 +1,8 @@
 # Demo recording script
 
-Six beats, about two and a half minutes. Every quoted string below was read off
-the hosted deployment, so if a beat says something different on the take, the
-data changed and the take should stop.
+Seven beats, about three minutes. Every quoted string below was read off the
+running app, so if a beat says something different on the take, the data changed
+and the take should stop.
 
 **Before recording.** Load <https://kolektif-kreatif-sumbar.vercel.app> once and
 let the explorer finish, so the Vercel function is warm. Cold, the first
@@ -14,15 +14,46 @@ reads better side by side.
 
 ## 1. The landing page (~15 s)
 
-Open `/`. The badge says **Connected to CognoDB**, with `Neo4j/5.26.0 over Bolt
-5.4.` under it.
+Open `/`. The header badge says **CognoDB Connected**; the footer says `CognoDB
+Neo4j/5.26.0`.
 
 > This is a live check, not a build-time string. Every request asks the database
 > whether it is there.
 
-Point at the four node-type counts, then click through to the explorer.
+Point at the three cards — **Collaborator Referrals**, **Degrees of Separation**,
+**Ecosystem Canvas Map** — then stay on the page.
 
-## 2. The graph (~20 s)
+## 2. Answering from the homepage (~30 s)
+
+Type `ngarai` into the search box. Two hits appear while typing:
+
+    Jejak di Ngarai   Film              Project
+    Ngarai Pictures   Production House  Agency
+
+> One query across all five node types, debounced, 200 ms after the last
+> keystroke.
+
+Clear it and click the **Rian Syahputra** chip instead.
+
+> Five chips, one per node type, for a visitor who does not have a name to type.
+
+The card opens: `SKILLS (2)` Directing and Screenwriting, `MEMBER OF (1)`
+Kolektif Layar Tancap, `WORKED ON (3)` — Jejak di Ngarai, Anak Rantau and Lagu
+untuk Bundo, all as Director.
+
+> The role sits on the relationship, not on the person. Rian is Director on these
+> three, and could be something else on a fourth.
+
+Click **Kolektif Layar Tancap** inside the card. It reloads in place to
+`MEMBERS (5)`: Rian Syahputra, Bayu Pratama, Sari Wulandari, Doni Saputra, Reza
+Fadillah. A back arrow appears in the header.
+
+> Traversal without leaving the front page and without loading the canvas. Same
+> endpoint the explorer uses — `/api/node`, one node and its neighbours.
+
+Press the back arrow once to show the stack, then **Explore Canvas**.
+
+## 3. The graph (~20 s)
 
 `/explore` paints **Laying out the network…** first, then the canvas resolves.
 
@@ -32,20 +63,19 @@ Point at the four node-type counts, then click through to the explorer.
 
 Let it settle. Do not narrate over the layout animation; it is short.
 
-## 3. Search and inspect (~25 s)
+## 4. Search and inspect (~20 s)
 
-Type `rian` in the search box. One hit. Click it.
+Type `rian` in the explorer's own search box. One hit. Click it.
 
-The inspector opens on **Rian Syahputra** with `SKILLS (2)` Directing and
-Screenwriting, `MEMBER OF (1)` Kolektif Layar Tancap, and `WORKED ON (3)` — Anak
-Rantau, Jejak di Ngarai and Lagu untuk Bundo, all as Director.
+The inspector opens on **Rian Syahputra** with the same skills, collective and
+three credits, and a **Share 🔗** button next to Close.
 
-> The role sits on the relationship, not on the person. Rian is Director on these
-> three, and could be something else on a fourth.
+> Share copies `/explore?select=talent-rian-syahputra`. Every node in this app has
+> a URL, so a result can be sent to someone instead of described.
 
 Click one of the neighbours to show that traversal keeps going.
 
-## 4. Degrees of separation (~35 s)
+## 5. Degrees of separation (~35 s)
 
 Path tab. **Rian Syahputra** to **Wulan Safitri**. Trace the connection.
 
@@ -61,7 +91,7 @@ Read the chain off the screen:
 > recursive CTE with a visited-set you maintain yourself, and it still hands back
 > only the number, not the route.
 
-## 5. The hop no relational query would find (~25 s)
+## 6. The hop no relational query would find (~25 s)
 
 Same tab. **Yusra Hakim** to **Elok Permata**.
 
@@ -75,7 +105,7 @@ Same tab. **Yusra Hakim** to **Elok Permata**.
 
 This is the beat that makes the case for the graph. Do not rush it.
 
-## 6. Recommendation, and its explanation (~30 s)
+## 7. Recommendation, and its explanation (~30 s)
 
 Suggest tab. **Rian Syahputra**, skill **Cinematography**.
 
@@ -108,3 +138,5 @@ credits.
 - The database-unreachable state. It works, and it is described in the README,
   but faking an outage on camera costs 30 s and reads as filler.
 - The mobile layout. The 390 px screenshot is already in the README.
+- A search that matches nothing. `zzzz` returns "No entities match “zzzz”" with
+  three suggested terms, which is correct and dull. Beat 2 is more convincing.
