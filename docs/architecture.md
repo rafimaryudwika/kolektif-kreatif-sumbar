@@ -67,7 +67,53 @@ still return 200 with an explicit "graph database unreachable" state, and
 `GET /api/health` returns 503 so an uptime check can see the difference without
 parsing a body.
 
-## 3. Environment Variables
+## 3. API Surface
+
+Every route is `GET`, returns `{ data }` on success and `{ error: { code,
+message } }` otherwise, and runs exactly one query from `src/lib/graph.ts`.
+Input validation and the error mapping in §2.1 are the only logic in a route.
+
+| Route | Query | Parameters | Notes |
+| --- | --- | --- | --- |
+| `/api/graph` | E | — | Whole graph in one response. |
+| `/api/node` | C | `id`, `label` | `label` must be one of the five; see below. |
+| `/api/search` | D | `q` | Minimum two characters. |
+| `/api/recommendations` | A | `talentId`, `skill` | `skill` is the skill's name. |
+| `/api/path` | B | `from`, `to` | Two talent ids. |
+| `/api/health` | — | — | 503 when the database is unreachable. |
+
+### 3.1 Empty is an answer, not an error
+
+Three endpoints can legitimately return nothing, and all three answer 200:
+
+* `/api/recommendations` with `recommendations: []` — the talent exists and has
+  nobody with that skill in their agency network.
+* `/api/path` with `path: null` — no route within the four-hop budget. This is
+  the same response a mistyped id produces, which is deliberate: both mean
+  there is nothing to draw, and the UI says so either way.
+* `/api/graph` with empty arrays — only reachable against an unseeded database,
+  where an empty graph is more honest than a 500 that hides the real cause.
+
+`/api/node` is the exception. It answers 404 when the id does not exist, because
+the query returns a row even for a node with no connections, so no row can only
+mean the node is absent.
+
+### 3.2 Why `/api/node` takes a label
+
+Cypher cannot parameterize a label, and building the query by concatenation is
+forbidden here. The resolution is the lookup table in `docs/database.md` §2.4:
+five complete queries built at module load from a fixed `as const` array, keyed
+by label. A request's label is checked against that list and then only used as a
+map key — it never reaches a query string. `neighbourhoodQuery` is unexported
+and typed to the five-literal union, so passing a request-supplied `string` to
+it fails `astro check` rather than reaching review.
+
+The label is required rather than derived from the id prefix. The seed's slugs
+do encode their type, but depending on that would couple every request to the
+seed script's naming, and the client already knows the label from whatever
+payload handed it the id.
+
+## 4. Environment Variables
 
 Read strictly from the runtime environment and never committed. `.env` is
 gitignored; `.env.example` documents the shape.
@@ -81,7 +127,7 @@ gitignored; `.env.example` documents the shape.
 The same three variables must be set in the Vercel project settings for the
 deployed build.
 
-## 4. Operational Scripts
+## 5. Operational Scripts
 
 | Command | Purpose |
 | --- | --- |
@@ -90,7 +136,7 @@ deployed build.
 | `npm run check` | `astro check` — type checking across `.astro`, `.ts`, `.svelte`. |
 | `npm run build` | Production SSR build through the Vercel adapter. |
 
-## 5. Known Advisory
+## 6. Known Advisory
 
 `npm audit` reports three high-severity findings that all resolve to one root
 cause: `@astrojs/vercel@11.0.5` (the current release) pins
