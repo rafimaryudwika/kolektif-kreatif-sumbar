@@ -51,6 +51,22 @@
     failure = null;
     try {
       overview = await apiGet<GraphOverview>('/api/graph');
+      if (typeof window !== 'undefined' && overview) {
+        const params = new URLSearchParams(window.location.search);
+        const selectId = params.get('select') || params.get('node');
+        const tabParam = params.get('tab');
+
+        if (tabParam && (tabParam === 'detail' || tabParam === 'path' || tabParam === 'suggest')) {
+          tab = tabParam;
+        }
+
+        if (selectId) {
+          const match = overview.nodes.find((n) => n.id === selectId);
+          if (match) {
+            setTimeout(() => open(match), 100);
+          }
+        }
+      }
     } catch (error) {
       overview = null;
       failure = {

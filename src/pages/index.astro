@@ -1,62 +1,149 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import HomeSearch from '../components/HomeSearch.svelte';
 import { checkHealth } from '../lib/cognodb';
 
 // Rendered per request so the status below always reflects the live database.
 const health = await checkHealth();
+
+const LEGEND = [
+  ['Talent', 'bg-talent', 'Filmmakers, Designers, Animators, Musicians'],
+  ['Project', 'bg-project', 'Films, Music Videos, Campaigns'],
+  ['Agency', 'bg-agency', 'Studios & Production Houses'],
+  ['Skill', 'bg-skill', 'Technical Skills & Specializations'],
+  ['Collective', 'bg-collective', 'Communities & Regional Collectives'],
+] as const;
 ---
 
-<Layout title="SumbuKolektif — Sumbar Creative Network">
-  <main id="main" class="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-16">
-    <p class="text-sm font-medium tracking-widest text-ink-subtle uppercase">
-      Sumbar Creative Network
-    </p>
-    <h1 class="mt-3 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-      SumbuKolektif
-    </h1>
-    <p class="mt-4 max-w-prose text-lg text-pretty text-ink-muted">
-      Mapping how filmmakers, designers, animators, musicians and make-up artists
-      across West Sumatra are actually connected — through the projects,
-      agencies and collectives they share.
-    </p>
+<Layout title="SumbuKolektif — Sumbar Creative Network Explorer">
+  <div class="flex min-h-dvh flex-col bg-canvas text-ink">
+    <!-- Header Navigation -->
+    <header class="border-b border-border bg-surface/50 backdrop-blur-md sticky top-0 z-30">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-3.5">
+        <a href="/" class="flex items-center gap-2.5 group">
+          <div class="size-7 rounded-lg bg-talent/10 border border-talent/30 grid place-items-center font-bold text-talent text-sm group-hover:bg-talent group-hover:text-canvas transition">
+            SK
+          </div>
+          <div>
+            <span class="text-sm font-semibold tracking-tight block leading-none">SumbuKolektif</span>
+            <span class="text-[10px] text-ink-subtle leading-none">Sumbar Creative Network</span>
+          </div>
+        </a>
 
-    <div class="mt-10 rounded-xl border border-border bg-surface p-5">
-      <div class="flex items-center gap-3">
-        <span
-          class:list={[
-            'size-2.5 shrink-0 rounded-full',
-            health.ok ? 'bg-project' : 'bg-skill',
-          ]}
-          aria-hidden="true"
-        ></span>
-        <h2 class="text-sm font-semibold">
-          {health.ok ? 'Connected to CognoDB' : 'Graph database unreachable'}
-        </h2>
+        <div class="flex items-center gap-4">
+          <div class="hidden sm:flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs">
+            <span
+              class:list={[
+                'size-2 rounded-full',
+                health.ok ? 'bg-project animate-pulse' : 'bg-skill',
+              ]}
+              aria-hidden="true"
+            ></span>
+            <span class="text-ink-muted">
+              {health.ok ? 'CognoDB Connected' : 'DB Unreachable'}
+            </span>
+          </div>
+
+          <a
+            href="/explore"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-talent px-3.5 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-blue-600 focus:outline-none"
+          >
+            <span>Canvas Explorer</span>
+            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+        </div>
       </div>
-      <p class="mt-2 text-sm text-ink-muted">
-        {
-          health.ok
-            ? `${health.agent} over Bolt ${health.protocolVersion}.`
-            : 'The explorer will show cached guidance until the connection returns.'
-        }
-      </p>
-    </div>
+    </header>
 
-    <ul class="mt-10 flex flex-wrap gap-2" aria-label="Entity types in the graph">
-      {
-        [
-          ['Talent', 'bg-talent'],
-          ['Project', 'bg-project'],
-          ['Agency', 'bg-agency'],
-          ['Skill', 'bg-skill'],
-          ['Collective', 'bg-collective'],
-        ].map(([label, dot]) => (
-          <li class="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-ink-muted">
-            <span class:list={['size-2 rounded-full', dot]} aria-hidden="true" />
-            {label}
-          </li>
-        ))
-      }
-    </ul>
-  </main>
+    <main id="main" class="mx-auto w-full max-w-5xl flex-1 px-6 py-12">
+      <!-- Hero Section -->
+      <section class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 rounded-full border border-talent/20 bg-talent/10 px-3 py-1 text-xs font-medium text-talent">
+          <span class="size-1.5 rounded-full bg-talent"></span>
+          Graph-Backed Creative Talent Ecosystem
+        </div>
+
+        <h1 class="mt-4 text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl text-ink">
+          SumbuKolektif
+        </h1>
+        <p class="mt-4 text-lg text-pretty text-ink-muted leading-relaxed">
+          Mapping how filmmakers, designers, animators, 3D visualizers, musicians, and collectives across West Sumatra connect through shared projects, agencies, and organic creative networks.
+        </p>
+
+        <!-- Interactive Homepage Search & Network Explorer Component -->
+        <HomeSearch client:load />
+      </section>
+
+      <!-- Entity Legend Section -->
+      <section class="mt-16 border-t border-border pt-10">
+        <h2 class="text-xs font-semibold tracking-wider text-ink-subtle uppercase">
+          Ecosystem Graph Nodes (5 Entity Types)
+        </h2>
+
+        <ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-label="Entity types in graph">
+          {
+            LEGEND.map(([label, dot, desc]) => (
+              <li class="flex flex-col justify-between rounded-xl border border-border bg-surface p-3.5 transition hover:border-border-strong">
+                <div class="flex items-center gap-2">
+                  <span class:list={['size-2.5 rounded-full shrink-0', dot]} aria-hidden="true" />
+                  <span class="text-sm font-semibold text-ink">{label}</span>
+                </div>
+                <span class="mt-2 text-xs text-ink-subtle leading-snug">{desc}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <!-- Graph Database Capability Highlights -->
+      <section class="mt-16 rounded-2xl border border-border bg-surface p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h2 class="text-xl font-bold text-ink sm:text-2xl">
+              Why a Graph Database?
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm text-ink-muted leading-relaxed">
+              The regional creative industry relies on organic, word-of-mouth networks. Unlike traditional relational databases (RDBMS) requiring slow nested <code class="rounded bg-canvas px-1.5 py-0.5 font-mono text-xs text-talent">JOIN</code> operations, CognoDB (OpenCypher over Bolt) executes multi-hop graph traversals instantly.
+            </p>
+          </div>
+
+          <div class="shrink-0">
+            <a
+              href="/explore"
+              class="inline-flex items-center justify-center rounded-xl bg-surface-raised border border-border-strong px-5 py-3 text-sm font-semibold text-ink transition hover:bg-border hover:border-ink-muted"
+            >
+              Explore Interactive Canvas →
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3 border-t border-border/60 pt-6 text-xs">
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-ink">4-Hop Recommendations</span>
+            <span class="text-ink-subtle">Recommends trusted talent based on shared collective and project relationships.</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-ink">Shortest Path Traversal</span>
+            <span class="text-ink-subtle">Calculates degrees of separation between any two creators without rigid SQL schemas.</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="font-semibold text-ink">Strict Parameterization</span>
+            <span class="text-ink-subtle">100% parameterized Cypher driver queries over Bolt protocol for maximum speed and security.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-border py-6 text-center text-xs text-ink-subtle">
+      <div class="mx-auto max-w-5xl px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p>© 2026 SumbuKolektif — Sumbar Creative Network</p>
+        <p class="font-mono text-[11px]">
+          {health.ok ? `CognoDB ${health.agent}` : 'Offline Mode'}
+        </p>
+      </div>
+    </footer>
+  </div>
 </Layout>
