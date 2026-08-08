@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens for SumbuKolektif.
+ *
+ * The palette is a dark zinc base so that the graph canvas — the one place
+ * where colour carries meaning — is the brightest thing on screen. Entity
+ * colours are the single source of truth: the Svelte graph island, the legend
+ * and the inspector all read these variables rather than repeating hex codes.
+ */
+
+@theme {
+  /* Entity colours. One hue per node label, per docs/design-system.md. */
+  --color-talent: #3b82f6;
+  --color-project: #10b981;
+  --color-agency: #f59e0b;
+  --color-skill: #ec4899;
+  --color-collective: #8b5cf6;
+
+  /* Surfaces, from furthest back to closest to the reader. */
+  --color-canvas: #09090b;
+  --color-surface: #131316;
+  --color-surface-raised: #1c1c21;
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
+
+  /* Text, in descending emphasis. */
+  --color-ink: #fafafa;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-subtle: #71717a;
+}
+
+/*
+ * `inline` matters here: Astro defines --font-inter on a wrapping scope, and
+ * without it `font-sans` would emit var(--font-sans) and resolve against the
+ * wrong scope.
+ */
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible keyboard focus everywhere, including inside the graph controls. */
+  :focus-visible {
+    outline: 2px solid var(--color-talent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-talent) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  /* Respect the OS setting for anyone who gets motion sick from the graph. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
