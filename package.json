@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check": "astro check",
+    "check": "astro check && svelte-check --threshold error",
     "probe": "node scripts/probe-cognodb.js",
     "seed": "node --experimental-strip-types scripts/seed.ts"
   },
@@ -30,6 +30,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/cytoscape": "^3.21.9",
-    "@types/node": "^26.2.0"
+    "@types/node": "^26.2.0",
+    "svelte-check": "^4.7.5"
   }
 }

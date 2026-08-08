@@ -59,10 +59,16 @@ means something genuinely regressed.
 Verify types and test the SSR build before committing:
 
 ```bash
-npm run check   # astro check
+npm run check   # astro check, then svelte-check
 npm run build
 
 ```
+
+`astro check` does not look inside `.svelte` files, so on its own it passes a
+component that calls a function it never imported or hands a prop the wrong
+shape. Both have already happened here, and a green `astro check` is what let the
+second one through. `svelte-check` runs in the same script for that reason;
+`--threshold error` keeps a11y hints from burying the errors that matter.
 
 ---
 
