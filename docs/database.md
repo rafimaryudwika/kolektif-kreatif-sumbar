@@ -107,8 +107,12 @@ see [Query B](#query-b-shortest-path-between-two-talents).
 `Collective` is deliberately not decoration. Formal work history
 (`COLLABORATED_ON` → `PRODUCED_BY`) only connects people who were paid on the
 same project. Collectives connect people who share a scene: film clubs, design
-circles, music communities. Two talents with no shared credit can still be one
-hop apart through a collective.
+circles, music communities. Two talents with no shared credit can still be two
+hops apart through a collective — one introduction, not a chain of them.
+
+The seeded example is Yusra Hakim and Elok Permata: no shared project, no shared
+skill, no shared agency, and exactly one node between them, `Tiga Tungku`. A
+project-only query cannot reach that at any depth.
 
 This matters for two reasons:
 
@@ -248,6 +252,15 @@ talent and their collaborator's collaborator's collective — and anything beyon
 that is not a relationship a person would recognise as one. The query returns no
 rows when no path exists within the budget, which the UI renders as an explicit
 "no known connection" state rather than an error.
+
+**Talent-to-talent distances are always even.** The schema is bipartite:
+`Talent` and `Agency` on one side, `Skill`, `Collective`, and `Project` on the
+other, and every relationship in §2 crosses between the two. A path from a
+talent therefore alternates sides and can only return to a talent after an even
+number of hops. The reachable distances are 2 and 4, never 1, 3, or 5 — which is
+why raising the budget to 5 would buy nothing, and why the UI can describe a
+result as "one introduction away" (2) or "two introductions away" (4) without
+ever having to phrase an odd case.
 
 ### Query C: Node neighbourhood
 

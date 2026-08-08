@@ -25,9 +25,19 @@ To populate or reset the CognoDB graph instance with mock data:
 
 ```bash
 npm run seed
-# or: node scripts/seed.js
+# or: node --experimental-strip-types scripts/seed.ts
 
 ```
+
+The script wipes the graph, applies the schema from `docs/database.md` §2.2,
+inserts the dataset, then **verifies that Queries A and B actually return
+something against what it just wrote** and exits non-zero if they do not. A seed
+that leaves the recommendation query empty is a broken seed, so those checks are
+part of the script rather than a manual follow-up.
+
+The flag is what lets a `.ts` script import the singleton in
+`src/lib/cognodb.ts`. Node strips types by default from 22.18, but
+`engines.node` allows 22.12, so it stays explicit.
 
 ### Connectivity Probe
 
@@ -39,7 +49,10 @@ npm run probe
 ```
 
 Writes only under a `_Probe` label and deletes them again, so it is safe to run
-against a seeded instance.
+against a seeded instance. Two probes are marked `N/A` on purpose — CognoDB has
+no `dbms.components()` procedure and rejects `CALL { } IN TRANSACTIONS` as a
+syntax error. The app codes around both, so they do not fail the run. A `FAIL`
+means something genuinely regressed.
 
 ### Build & Type Checking
 

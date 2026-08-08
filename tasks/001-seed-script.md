@@ -2,8 +2,10 @@
 
 ## Description
 
-Standalone Node.js script (`scripts/seed.js`) that wipes the graph and
-repopulates it with a plausible slice of West Sumatra's creative ecosystem.
+Standalone script (`scripts/seed.ts`) that wipes the graph and repopulates it
+with a plausible slice of West Sumatra's creative ecosystem. TypeScript, run
+under Node's type stripping, so it can import the singleton in
+`src/lib/cognodb.ts` directly instead of duplicating the connection logic.
 
 ## Requirements
 
@@ -19,10 +21,13 @@ repopulates it with a plausible slice of West Sumatra's creative ecosystem.
    ```
 
    A plain `MATCH (n) DETACH DELETE n` is acceptable at this dataset size and is
-   the fallback if `CALL { } IN TRANSACTIONS` is rejected.
+   the fallback if `CALL { } IN TRANSACTIONS` is rejected. **CognoDB does reject
+   it** — `Neo.ClientError.Statement.SyntaxError: unexpected token IN`, in an
+   autocommit transaction or otherwise — so the fallback is what ships. The
+   probe script records this.
 3. Apply the constraints and indexes from `docs/database.md` §2.2 before
    inserting. The uniqueness constraints are what make step 5 idempotent.
-4. Insert roughly 200 nodes:
+4. Insert 73 nodes:
 
    | Label | Count | Notes |
    | --- | --- | --- |
@@ -41,8 +46,15 @@ repopulates it with a plausible slice of West Sumatra's creative ecosystem.
    requirement, not a nicety — verify after seeding that:
    * Query A returns at least one recommendation for at least one talent/skill
      pair, routed through a shared agency.
-   * Query B finds a 3–4 hop path between two talents whose shortest route runs
-     through a `Collective`, not a project. That path is the strongest evidence
-     for the graph-database argument, so it must exist in the data.
+   * Query B finds a path between two talents whose shortest route runs through
+     a `Collective`, not a project. That path is the strongest evidence for the
+     graph-database argument, so it must exist in the data. Verify one at 2 hops
+     and one at 4.
+
+     Hop counts here are always **even**. The schema is bipartite — `Talent` and
+     `Agency` on one side, `Skill`, `Collective`, and `Project` on the other,
+     with every edge crossing between the two — so a talent-to-talent path
+     alternates sides and can only close on an even number of hops. An earlier
+     draft of this task asked for 3 hops, which the schema makes impossible.
    * No `Talent` is fully isolated.
 7. Close the driver in a `finally` block and print a summary count per label.
