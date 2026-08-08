@@ -24,6 +24,7 @@ import {
   readQuery,
   writeQuery,
 } from '../src/lib/cognodb.ts';
+import { PATH_QUERY, RECOMMENDATIONS_QUERY } from '../src/lib/graph.ts';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -657,37 +658,13 @@ async function insertRelationships(): Promise<void> {
 // Verification
 // ---------------------------------------------------------------------------
 
-/** Query A, verbatim from docs/database.md §3. */
-const QUERY_A = `
-MATCH (t1:Talent {id: $talentId})-[c1:COLLABORATED_ON]->(p1:Project)
-      -[:PRODUCED_BY]->(agency:Agency)
-MATCH (agency)<-[:PRODUCED_BY]-(p2:Project)
-      <-[c2:COLLABORATED_ON]-(t2:Talent)-[:HAS_SKILL]->(s:Skill {name: $skill})
-WHERE t1 <> t2
-RETURN DISTINCT
-  t2.id       AS talentId,
-  t2.name     AS talentName,
-  t2.role     AS talentRole,
-  c2.role     AS roleOnProject,
-  s.name      AS skill,
-  agency.name AS viaAgency,
-  p1.title    AS yourProject,
-  p2.title    AS theirProject
-ORDER BY talentName
-LIMIT 20`;
-
-/** Query B, verbatim from docs/database.md §3. */
-const QUERY_B = `
-MATCH (a:Talent {id: $fromId}), (b:Talent {id: $toId})
-MATCH path = shortestPath((a)-[*..4]-(b))
-RETURN
-  length(path)                         AS degrees,
-  [n IN nodes(path) | {
-    id:    n.id,
-    label: head(labels(n)),
-    name:  coalesce(n.name, n.title)
-  }]                                   AS pathNodes,
-  [r IN relationships(path) | type(r)] AS pathTypes`;
+/**
+ * The verification below runs the app's own queries, imported rather than
+ * copied. A pasted copy would keep passing here after the real one changed,
+ * which is the exact failure this step exists to catch.
+ */
+const QUERY_A = RECOMMENDATIONS_QUERY;
+const QUERY_B = PATH_QUERY;
 
 type PathNode = { id: string; label: string; name: string };
 type PathRow = { degrees: number; pathNodes: PathNode[]; pathTypes: string[] };
