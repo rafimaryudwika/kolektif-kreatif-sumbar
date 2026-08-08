@@ -96,7 +96,16 @@ export function graphStylesheet(): StylesheetStyle[] {
     // the canvas cannot end up disagreeing with the inspector about it.
     {
       selector: 'node.selected',
-      style: { 'border-width': 3, 'border-opacity': 1, 'font-weight': 700, 'font-size': 11 },
+      style: {
+        'border-width': 3,
+        'border-opacity': 1,
+        'font-weight': 700,
+        'font-size': 11,
+        // The base width is sized for font-size 9. Emphasising a node to 11
+        // makes its name ~20% wider, so without this a name that fit while
+        // unemphasised ellipsizes the moment the reader selects it.
+        'text-max-width': '130px',
+      },
     },
 
     // §3 again: unconnected nodes dim rather than disappear, so the reader keeps
@@ -104,8 +113,22 @@ export function graphStylesheet(): StylesheetStyle[] {
     { selector: '.faded', style: { opacity: 0.12, 'text-opacity': 0 } },
 
     {
+      // `opacity` and `text-opacity` are restored here, not merely inherited.
+      // A traced path routes through nodes that are not neighbours of the
+      // selected one, so `.faded` above applies to them, and it is the rule
+      // that hides labels outright. Without these two the middle of every path
+      // rendered at 12% with no name on it — the trace appeared to run through
+      // blank circles.
       selector: 'node.on-path',
-      style: { 'border-width': 3, 'border-opacity': 1, 'font-size': 11, 'font-weight': 700 },
+      style: {
+        'border-width': 3,
+        'border-opacity': 1,
+        'font-size': 11,
+        'font-weight': 700,
+        'text-max-width': '130px',
+        opacity: 1,
+        'text-opacity': 1,
+      },
     },
     {
       selector: 'edge.on-path',

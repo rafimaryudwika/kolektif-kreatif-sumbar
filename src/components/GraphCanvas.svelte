@@ -87,11 +87,12 @@
   }
 
   function applyPath(instance: Core, ids: string[]) {
+    const onPath = instance.collection();
+
     instance.batch(() => {
       instance.elements().removeClass('on-path');
       if (ids.length < 2) return;
 
-      const onPath = instance.collection();
       for (const [index, id] of ids.entries()) {
         const node = instance.getElementById(id);
         if (node.empty()) continue;
@@ -104,6 +105,21 @@
       }
       onPath.addClass('on-path');
     });
+
+    // Highlighting alone is not enough. The chain is usually spread across the
+    // graph, and at the zoom left over from a previous selection an endpoint can
+    // sit outside the viewport entirely — the trace reads as broken because the
+    // node it ends on is not on screen. Reframing is what makes it legible
+    // without the reader panning to find it.
+    if (onPath.nonempty()) {
+      // Padding is generous because cytoscape fits to node bounding boxes and
+      // ours carry their label underneath, outside that box. At a tighter value
+      // the endpoints land against the edge with their names half cut off.
+      instance.animate(
+        { fit: { eles: onPath, padding: 140 } },
+        { duration: prefersReducedMotion() ? 0 : 350 },
+      );
+    }
   }
 
   $effect(() => {
