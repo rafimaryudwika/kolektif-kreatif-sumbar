@@ -14,8 +14,21 @@
     "probe": "node scripts/probe-cognodb.js"
   },
   "dependencies": {
+    "@astrojs/svelte": "^9.0.1",
+    "@astrojs/vercel": "^11.0.5",
+    "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.0",
+    "cytoscape": "^3.34.0",
+    "cytoscape-fcose": "^2.2.0",
     "dotenv": "^17.4.2",
-    "neo4j-driver": "^6.2.0"
+    "neo4j-driver": "^6.2.0",
+    "svelte": "^5.56.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/cytoscape": "^3.21.9",
+    "@types/node": "^26.2.0"
   }
 }
