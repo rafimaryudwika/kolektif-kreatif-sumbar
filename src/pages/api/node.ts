@@ -56,7 +56,7 @@ export const GET: APIRoute = async ({ url }) => {
       throw new NotFoundError(`No ${label} with id "${nodeId}".`, 'NODE_NOT_FOUND');
     }
 
-    return jsonOk(result);
+    return jsonOk<Neighbourhood>(result);
   } catch (error) {
     return toErrorResponse(error, 'api/node');
   }

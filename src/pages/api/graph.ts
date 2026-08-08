@@ -23,7 +23,7 @@ export const GET: APIRoute = async () => {
     // relationships, which drops the nodes with it. That only happens on an
     // unseeded database, where an empty graph is the honest answer — better
     // than a 500 that hides the real problem, which is that nobody ran the seed.
-    return jsonOk(overview ?? { nodes: [], edges: [] });
+    return jsonOk<GraphOverview>(overview ?? { nodes: [], edges: [] });
   } catch (error) {
     return toErrorResponse(error, 'api/graph');
   }

@@ -8,7 +8,7 @@
 import type { APIRoute } from 'astro';
 import { BadRequestError, jsonOk, requireParam, toErrorResponse } from '../../lib/api';
 import { readQuery } from '../../lib/cognodb';
-import { SEARCH_QUERY, type SearchResult } from '../../lib/graph';
+import { SEARCH_QUERY, type SearchPayload, type SearchResult } from '../../lib/graph';
 
 /**
  * A single character matches most of the graph and the response is pure
@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ url }) => {
 
     const results = await readQuery<SearchResult>(SEARCH_QUERY, { term });
 
-    return jsonOk({ term, results });
+    return jsonOk<SearchPayload>({ term, results });
   } catch (error) {
     return toErrorResponse(error, 'api/search');
   }

@@ -16,6 +16,7 @@ import { readQuery } from '../../lib/cognodb';
 import {
   RECOMMENDATIONS_QUERY,
   groupRecommendations,
+  type RecommendationPayload,
   type RecommendationRow,
 } from '../../lib/graph';
 
@@ -29,7 +30,11 @@ export const GET: APIRoute = async ({ url }) => {
     // An empty list is a legitimate answer, not a 404: the talent exists and
     // simply has no one matching that skill in their agency network. The UI
     // says so rather than showing an error.
-    return jsonOk({ talentId, skill, recommendations: groupRecommendations(rows) });
+    return jsonOk<RecommendationPayload>({
+      talentId,
+      skill,
+      recommendations: groupRecommendations(rows),
+    });
   } catch (error) {
     return toErrorResponse(error, 'api/recommendations');
   }

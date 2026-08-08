@@ -248,3 +248,33 @@ export interface GraphOverview {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+
+/**
+ * What each route puts inside the `data` envelope.
+ *
+ * These live here rather than beside the routes because they are the contract
+ * between the two halves. The route annotates its `jsonOk` with one and the
+ * island annotates its `apiGet` with the same one, so a shape that drifts fails
+ * `astro check` instead of quietly rendering an empty panel.
+ *
+ * Three of them echo the request back with the answer. That is deliberate: an
+ * empty result has to name what it looked for, and by the time a response lands
+ * the input that triggered it may already have moved on.
+ */
+export interface SearchPayload {
+  term: string;
+  results: SearchResult[];
+}
+
+export interface PathPayload {
+  from: string;
+  to: string;
+  /** Null when nothing joins the two within the hop budget. */
+  path: PathResult | null;
+}
+
+export interface RecommendationPayload {
+  talentId: string;
+  skill: string;
+  recommendations: Recommendation[];
+}

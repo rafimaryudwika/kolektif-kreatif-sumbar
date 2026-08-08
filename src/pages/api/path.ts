@@ -8,7 +8,7 @@
 import type { APIRoute } from 'astro';
 import { BadRequestError, jsonOk, requireParam, toErrorResponse } from '../../lib/api';
 import { readQuery } from '../../lib/cognodb';
-import { PATH_QUERY, type PathResult } from '../../lib/graph';
+import { PATH_QUERY, type PathPayload, type PathResult } from '../../lib/graph';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ url }) => {
     // not a failure, so it is a 200 the UI renders as "no known connection".
     // The client cannot tell that case from a mistyped id, which is fine: both
     // mean "nothing to draw".
-    return jsonOk({ from: fromId, to: toId, path: path ?? null });
+    return jsonOk<PathPayload>({ from: fromId, to: toId, path: path ?? null });
   } catch (error) {
     return toErrorResponse(error, 'api/path');
   }
