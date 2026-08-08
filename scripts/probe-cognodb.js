@@ -28,18 +28,27 @@ if (missing.length > 0) {
 
 const PASS = 'PASS';
 const FAIL = 'FAIL';
+const NA = 'N/A';
 const results = [];
 
-/** Run one probe, record the outcome, never throw. */
-async function probe(name, fn) {
+/**
+ * Run one probe, record the outcome, never throw.
+ *
+ * `expectUnsupported: true` marks a feature this instance is already known not
+ * to support and which the app codes around. A throw is recorded as N/A rather
+ * than a failure, so the probe keeps documenting the gap without turning a
+ * healthy run red.
+ */
+async function probe(name, fn, { expectUnsupported = false } = {}) {
   try {
     const detail = await fn();
     results.push({ name, status: PASS, detail: detail ?? '' });
     console.log(`  ${PASS}  ${name}${detail ? ` — ${detail}` : ''}`);
   } catch (error) {
     const detail = `${error.code ?? error.name}: ${error.message.split('\n')[0]}`;
-    results.push({ name, status: FAIL, detail });
-    console.log(`  ${FAIL}  ${name} — ${detail}`);
+    const status = expectUnsupported ? NA : FAIL;
+    results.push({ name, status, detail });
+    console.log(`  ${status.padEnd(4)} ${name} — ${detail}`);
   }
 }
 
@@ -90,12 +99,19 @@ async function main() {
     return `echo=${records[0].get('echo')}`;
   });
 
-  await probe('server components', async () => {
-    const records = await read('CALL dbms.components() YIELD name, versions, edition');
-    return records
-      .map((r) => `${r.get('name')} ${r.get('versions').join(',')} (${r.get('edition')})`)
-      .join('; ');
-  });
+  // Expected to be absent: CognoDB is a hosted openCypher service, not a full
+  // Neo4j deployment, so the admin procedures are not registered. Version info
+  // comes from `driver.getServerInfo()` above instead.
+  await probe(
+    'server components',
+    async () => {
+      const records = await read('CALL dbms.components() YIELD name, versions, edition');
+      return records
+        .map((r) => `${r.get('name')} ${r.get('versions').join(',')} (${r.get('edition')})`)
+        .join('; ');
+    },
+    { expectUnsupported: true },
+  );
 
   await probe('db.labels() introspection', async () => {
     const records = await read('CALL db.labels() YIELD label RETURN label');
@@ -161,6 +177,21 @@ async function main() {
     const counted = await read('MATCH (p:_Probe) RETURN count(p) AS c');
     return `${counted[0].get('c')} probe nodes after two MERGE passes (expected 7)`;
   });
+
+  // Expected to FAIL on this instance: the parser rejects the clause outright
+  // with a syntax error, not a transaction-context error. `scripts/seed.ts`
+  // wipes in a single transaction because of this.
+  await probe('CALL {} IN TRANSACTIONS (batched writes)', async () => {
+    const session = driver.session();
+    try {
+      await session.run(
+        'MATCH (p:_Probe) CALL { WITH p SET p.batched = true } IN TRANSACTIONS OF 500 ROWS',
+      );
+      return 'accepted';
+    } finally {
+      await session.close();
+    }
+  }, { expectUnsupported: true });
 
   console.log('\nTraversal features');
   await probe('variable-length path [*..4]', async () => {
@@ -259,9 +290,18 @@ async function main() {
   });
 
   const failed = results.filter((r) => r.status === FAIL);
-  console.log(`\n${results.length - failed.length}/${results.length} probes passed.`);
+  const expected = results.filter((r) => r.status === NA);
+  const passed = results.length - failed.length - expected.length;
+  console.log(
+    `\n${passed}/${results.length} probes passed` +
+      (expected.length > 0 ? `, ${expected.length} unsupported as expected.` : '.'),
+  );
+  if (expected.length > 0) {
+    console.log('\nUnsupported, and the app already works around it:');
+    for (const e of expected) console.log(`  - ${e.name}: ${e.detail}`);
+  }
   if (failed.length > 0) {
-    console.log('\nUnsupported or failing:');
+    console.log('\nUnexpectedly unsupported or failing:');
     for (const f of failed) console.log(`  - ${f.name}: ${f.detail}`);
   }
   return failed.length;
