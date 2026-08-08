@@ -37,8 +37,8 @@ are required; the last two are the ones easiest to forget until the deadline.
 | --- | --- |
 | Public GitHub repository | done — [rafimaryudwika/kolektif-kreatif-sumbar](https://github.com/rafimaryudwika/kolektif-kreatif-sumbar) |
 | README: use case, *why a graph database*, data model diagram, setup steps, queries explained, UI screenshots | done — `README.md`, screenshots in `docs/screenshots/` |
-| Hosted demo link (Vercel) | pending — the three `COGNODB_*` variables go into the project settings |
-| Short screen recording of the working app | pending — blocked on the hosted demo |
+| Hosted demo link (Vercel) | done — [kolektif-kreatif-sumbar.vercel.app](https://kolektif-kreatif-sumbar.vercel.app), walked end to end against the seeded instance |
+| Short screen recording of the working app | pending — beats in `docs/demo-script.md` |
 
 The repository is already public, so its history was audited before this was
 recorded: `.env` appears in no commit on any branch, `.env.example` is the only

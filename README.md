@@ -7,6 +7,8 @@ connected, through the projects, agencies and collectives they share.
 Built for the Wexa AI take-home assignment. Astro 7 (SSR) + Svelte 5 islands on
 Vercel, openCypher over Bolt against a CognoDB Cloud instance.
 
+**Live: [kolektif-kreatif-sumbar.vercel.app](https://kolektif-kreatif-sumbar.vercel.app)**
+
 ---
 
 ## What it is for
