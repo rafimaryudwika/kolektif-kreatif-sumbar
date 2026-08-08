@@ -352,14 +352,15 @@ LIMIT 15;
 ```
 
 This one deliberately scans: substring search cannot use a range index, and at
-~200 nodes the scan is cheaper than maintaining a full-text index. Revisit if
+73 nodes the scan is cheaper than maintaining a full-text index. Revisit if
 the dataset ever grows past a few thousand nodes, at which point the answer is
 `CREATE FULLTEXT INDEX`.
 
 ### Query E: Graph overview
 
 The initial canvas payload — the whole graph, which is safe to ship in one
-response at this dataset size (~200 nodes) and keeps the first paint fast.
+response at this dataset size (73 nodes, 161 relationships) and keeps the first
+paint fast.
 
 ```cypher
 MATCH (n)
