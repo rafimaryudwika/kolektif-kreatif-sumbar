@@ -22,3 +22,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+.vercel
+
+# scratch output from the Playwright MCP browser (screenshots we keep live in
+# docs/screenshots/, which is tracked on purpose for the README)
+.playwright-mcp/
