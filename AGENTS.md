@@ -29,12 +29,24 @@ npm run seed
 
 ```
 
+### Connectivity Probe
+
+Before blaming the app, confirm the database itself is reachable and still
+supports the Cypher features we rely on:
+
+```bash
+npm run probe
+```
+
+Writes only under a `_Probe` label and deletes them again, so it is safe to run
+against a seeded instance.
+
 ### Build & Type Checking
 
 Verify types and test the SSR build before committing:
 
 ```bash
-astro check
+npm run check   # astro check
 npm run build
 
 ```
@@ -53,12 +65,13 @@ npm run build
 
 1. **Strictly Parameterized Queries**: ALWAYS parameterize Cypher queries using driver variables (e.g., `{ name: $directorName }`). NEVER use string concatenation or template literals for Cypher values.
 2. **Singleton Driver Pattern**: Import the DB client from `src/lib/cognodb.ts`. Do not instantiate multiple `neo4j.driver` instances across API routes to prevent socket leaks in serverless environments.
-3. **Environment Security**: Verify `COGNODB_URI`, `COGNODB_USER`, and `COGNODB_PASSWORD` exist in `.env` before executing database commands. Never hardcode credentials.
+3. **Environment Security**: Verify `COGNODB_URL`, `COGNODB_USERNAME`, and `COGNODB_PASSWORD` exist in `.env` before executing database commands. Never hardcode credentials. `.env` is gitignored; `.env.example` documents the expected keys.
+4. **Never key on `elementId()`**: this instance returns a bare counter, not Neo4j's `4:<uuid>:1` form, and it is unstable across a re-seed. Use our own `id` property (or `name` for `Skill`).
 
 ### Component & Interactive States
 
-* Graph visualizers (e.g., `vis-network` or `cytoscape`) must run purely on the client using Astro's `client:only` or `client:load` directives.
-* All API routes under `src/pages/api/` must return structured JSON and handle connection errors gracefully.
+* The graph canvas uses **Cytoscape.js** (`cytoscape` + `cytoscape-fcose` for the force-directed layout) inside a Svelte island mounted with `client:only="svelte"` — the layout engine touches `window`, so it must never run during SSR. Call `cy.destroy()` on unmount.
+* All API routes under `src/pages/api/` must return structured JSON and handle connection errors gracefully. Use the helpers in `src/lib/api.ts` (`jsonOk`, `toErrorResponse`, `requireParam`) rather than hand-rolling responses.
 
 ---
 
@@ -68,10 +81,10 @@ npm run build
 
 Consult these specs before implementing features or modifying schema:
 
-* [PRD & Capabilities](https://www.google.com/search?q=docs/PRD.md)
-* [Database Schema & Cypher Queries](https://www.google.com/search?q=docs/database.md)
-* [System Architecture](https://www.google.com/search?q=docs/architecture.md)
-* [Design System & UI Guidelines](https://www.google.com/search?q=docs/design-system.md)
+* [PRD & Capabilities](docs/PRD.md)
+* [Database Schema & Cypher Queries](docs/database.md)
+* [System Architecture](docs/architecture.md)
+* [Design System & UI Guidelines](docs/design-system.md)
 
 ### Astro Framework Guides
 
